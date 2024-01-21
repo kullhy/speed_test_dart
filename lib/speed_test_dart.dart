@@ -122,7 +122,7 @@ class SpeedTestDart {
   Future<TestResult> testDownloadSpeed({
     required List<Server> servers,
     int simultaneousDownloads = 2,
-    int retryCount = 3,
+    int retryCount = 8,
     List<FileSize> downloadSizes = defaultDownloadSizes,
     required StreamController downloadSpeedController,
   }) async {
@@ -180,7 +180,7 @@ class SpeedTestDart {
 
     TestResult testDownloadResult = TestResult(
         speed: downloadSpeed.round(),
-        jitter: averageJitter.round(),
+        jitter: averageJitter,
         loss: failedRequests);
     // }
     return testDownloadResult;
@@ -191,7 +191,7 @@ class SpeedTestDart {
   Future<TestResult> testUploadSpeed({
     required List<Server> servers,
     int simultaneousUploads = 2,
-    int retryCount = 3,
+    int retryCount = 10,
     required StreamController uploadSpeedController,
   }) async {
     double uploadSpeed = 0;
