@@ -129,6 +129,12 @@ class SpeedTestDart {
     double downloadSpeed = 0;
     List<double> jitter = [];
 
+    if (servers.first.latency < 10) {
+      retryCount = 8;
+    } else {
+      retryCount = 4;
+    }
+
     // Iterates over all servers, if one request fails, the next one is tried.
     // for (final s in servers) {
     final s = servers.first;
@@ -194,6 +200,11 @@ class SpeedTestDart {
     int retryCount = 10,
     required StreamController uploadSpeedController,
   }) async {
+    if (servers.first.latency < 10) {
+      retryCount = 10;
+    } else {
+      retryCount = 4;
+    }
     double uploadSpeed = 0;
     for (var s in servers) {
       final testData = generateUploadData(retryCount);
