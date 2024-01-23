@@ -145,10 +145,25 @@ class SpeedTestDart {
     final tasks = <int>[];
     final stopwatch = Stopwatch()..start();
     int failedRequests = 0;
+    final startTime = DateTime.now().millisecondsSinceEpoch;
 
     try {
       await Future.forEach(testData, (String td) async {
         await semaphore.acquire();
+
+        if (DateTime.now().millisecondsSinceEpoch - startTime > 10000) {
+          double averageJitter =
+              jitter.reduce((value, element) => value + element) /
+                  jitter.length;
+          print("jitter $averageJitter");
+
+          TestResult testDownloadResult = TestResult(
+              speed: downloadSpeed.round(),
+              jitter: averageJitter,
+              loss: failedRequests);
+          // }
+          return testDownloadResult;
+        }
         try {
           final data = await http.get(Uri.parse(td));
           tasks.add(data.bodyBytes.length);
@@ -216,8 +231,17 @@ class SpeedTestDart {
       final stopwatch = Stopwatch()..start();
       final tasks = <int>[];
 
+      final startTime = DateTime.now().millisecondsSinceEpoch;
+
       try {
         await Future.forEach(testData, (String td) async {
+          if (DateTime.now().millisecondsSinceEpoch - startTime > 10000) {
+            TestResult testUploadResult = TestResult(
+              speed: uploadSpeed.round(),
+            );
+            // }
+            return testUploadResult;
+          }
           await semaphore.acquire();
           try {
             // do post request to measure time for upload
