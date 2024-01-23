@@ -155,7 +155,8 @@ class SpeedTestDart {
           double averageJitter =
               jitter.reduce((value, element) => value + element) /
                   jitter.length;
-          print("jitter $averageJitter");
+            print("time out");
+
 
           TestResult testDownloadResult = TestResult(
               speed: downloadSpeed.round(),
@@ -240,6 +241,7 @@ class SpeedTestDart {
               speed: uploadSpeed.round(),
             );
             // }
+            print("time out");
             return testUploadResult;
           }
           await semaphore.acquire();
