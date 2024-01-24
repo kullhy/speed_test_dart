@@ -152,18 +152,18 @@ class SpeedTestDart {
         await semaphore.acquire();
 
         if (DateTime.now().millisecondsSinceEpoch - startTime > 10000) {
-          double averageJitter =
-              jitter.reduce((value, element) => value + element) /
-                  jitter.length;
-            print("time out");
+          // double averageJitter =
+          //     jitter.reduce((value, element) => value + element) /
+          //         jitter.length;
+          //   print("time out");
 
 
-          TestResult testDownloadResult = TestResult(
-              speed: downloadSpeed.round(),
-              jitter: averageJitter,
-              loss: failedRequests);
-          // }
-          return testDownloadResult;
+          // TestResult testDownloadResult = TestResult(
+          //     speed: downloadSpeed.round(),
+          //     jitter: averageJitter,
+          //     loss: failedRequests);
+          // // }
+          // return testDownloadResult;
         }
         try {
           final data = await http.get(Uri.parse(td));
@@ -237,12 +237,12 @@ class SpeedTestDart {
       try {
         await Future.forEach(testData, (String td) async {
           if (DateTime.now().millisecondsSinceEpoch - startTime > 10000) {
-            TestResult testUploadResult = TestResult(
-              speed: uploadSpeed.round(),
-            );
-            // }
-            print("time out");
-            return testUploadResult;
+            // TestResult testUploadResult = TestResult(
+            //   speed: uploadSpeed.round(),
+            // );
+            // // }
+            // print("time out");
+            // return testUploadResult;
           }
           await semaphore.acquire();
           try {
