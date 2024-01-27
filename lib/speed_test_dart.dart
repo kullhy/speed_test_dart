@@ -122,21 +122,14 @@ class SpeedTestDart {
   Future<TestResult> testDownloadSpeed({
     required List<Server> servers,
     int simultaneousDownloads = 2,
-    int retryCount = 8,
+    int retryCount = 2,
     List<FileSize> downloadSizes = defaultDownloadSizes,
     required StreamController downloadSpeedController,
   }) async {
     double downloadSpeed = 0;
     List<double> jitter = [];
 
-    if (servers.first.latency < 15) {
-      retryCount = 8;
-    } else if (servers.first.latency > 25) {
-      retryCount = 1;
-    } else {
-      retryCount = 3;
-    }
-
+    retryCount = retryCount * (downloadSpeed % 50 + 1).round();
     // Iterates over all servers, if one request fails, the next one is tried.
     // for (final s in servers) {
     final s = servers.first;
@@ -152,18 +145,17 @@ class SpeedTestDart {
         await semaphore.acquire();
 
         if (DateTime.now().millisecondsSinceEpoch - startTime > 10000) {
-          // double averageJitter =
-          //     jitter.reduce((value, element) => value + element) /
-          //         jitter.length;
-          //   print("time out");
+          double averageJitter =
+              jitter.reduce((value, element) => value + element) /
+                  jitter.length;
+          print("time out");
 
-
-          // TestResult testDownloadResult = TestResult(
-          //     speed: downloadSpeed.round(),
-          //     jitter: averageJitter,
-          //     loss: failedRequests);
-          // // }
-          // return testDownloadResult;
+          TestResult testDownloadResult = TestResult(
+              speed: downloadSpeed.round(),
+              jitter: averageJitter,
+              loss: failedRequests);
+          // }
+          return testDownloadResult;
         }
         try {
           final data = await http.get(Uri.parse(td));
@@ -215,17 +207,12 @@ class SpeedTestDart {
   Future<TestResult> testUploadSpeed({
     required List<Server> servers,
     int simultaneousUploads = 2,
-    int retryCount = 10,
+    int retryCount = 3,
     required StreamController uploadSpeedController,
   }) async {
-    if (servers.first.latency < 15) {
-      retryCount = 10;
-    } else if (servers.first.latency > 25) {
-      retryCount = 2;
-    } else {
-      retryCount = 4;
-    }
     double uploadSpeed = 0;
+    retryCount = retryCount * (uploadSpeed % 25 + 1).round();
+
     for (var s in servers) {
       final testData = generateUploadData(retryCount);
       final semaphore = Semaphore(simultaneousUploads);
@@ -237,12 +224,12 @@ class SpeedTestDart {
       try {
         await Future.forEach(testData, (String td) async {
           if (DateTime.now().millisecondsSinceEpoch - startTime > 10000) {
-            // TestResult testUploadResult = TestResult(
-            //   speed: uploadSpeed.round(),
-            // );
-            // // }
-            // print("time out");
-            // return testUploadResult;
+            TestResult testUploadResult = TestResult(
+              speed: uploadSpeed.round(),
+            );
+            // }
+            print("time out");
+            return testUploadResult;
           }
           await semaphore.acquire();
           try {
