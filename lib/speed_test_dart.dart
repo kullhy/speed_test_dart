@@ -122,14 +122,13 @@ class SpeedTestDart {
   Future<TestResult> testDownloadSpeed({
     required List<Server> servers,
     int simultaneousDownloads = 2,
-    int retryCount = 2,
+    int retryCount = 3,
     List<FileSize> downloadSizes = defaultDownloadSizes,
     required StreamController downloadSpeedController,
   }) async {
     double downloadSpeed = 0;
     List<double> jitter = [];
 
-    retryCount = retryCount * (downloadSpeed % 50 + 1).round();
     // Iterates over all servers, if one request fails, the next one is tried.
     // for (final s in servers) {
     final s = servers.first;
@@ -139,6 +138,13 @@ class SpeedTestDart {
     final stopwatch = Stopwatch()..start();
     int failedRequests = 0;
     final startTime = DateTime.now().millisecondsSinceEpoch;
+
+    final testData2 = testData;
+    int loop = (downloadSpeed % 50 + 1).round();
+    while (loop > 0) {
+      loop--;
+      testData.addAll(testData2);
+    }
 
     try {
       await Future.forEach(testData, (String td) async {
@@ -211,7 +217,6 @@ class SpeedTestDart {
     required StreamController uploadSpeedController,
   }) async {
     double uploadSpeed = 0;
-    retryCount = retryCount * (uploadSpeed % 25 + 1).round();
 
     for (var s in servers) {
       final testData = generateUploadData(retryCount);
@@ -220,6 +225,13 @@ class SpeedTestDart {
       final tasks = <int>[];
 
       final startTime = DateTime.now().millisecondsSinceEpoch;
+
+      final testData2 = testData;
+      int loop = (uploadSpeed % 25 + 1).round();
+      while (loop > 0) {
+        loop--;
+        testData.addAll(testData2);
+      }
 
       try {
         await Future.forEach(testData, (String td) async {
