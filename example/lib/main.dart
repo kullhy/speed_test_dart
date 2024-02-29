@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:speed_test_dart/classes/classes.dart';
 import 'package:speed_test_dart/speed_test_dart.dart';
