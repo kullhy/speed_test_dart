@@ -120,91 +120,94 @@ class SpeedTestDart {
 
   /// Returns [double] downloaded speed in MB/s.
   Future<TestResult> testDownloadSpeed({
-    required List<Server> servers,
-    int simultaneousDownloads = 2,
-    int retryCount = 20,
-    List<FileSize> downloadSizes = defaultDownloadSizes,
-    required StreamController downloadSpeedController,
-  }) async {
-    double downloadSpeed = 0;
-    List<double> jitter = [];
+  required List<Server> servers,
+  int simultaneousDownloads = 2,
+  int retryCount = 20,
+  List<FileSize> downloadSizes = defaultDownloadSizes,
+  required StreamController downloadSpeedController,
+}) async {
+  double downloadSpeed = 0;
+  List<double> jitter = [];
+  List<DateTime> downloadStartTimes = [];
 
-    int loopIndex = 2;
+  final s = servers.first;
+  final testData = generateDownloadUrls(s, retryCount, downloadSizes);
+  final semaphore = Semaphore(simultaneousDownloads);
+  final tasks = <int>[];
+  final stopwatch = Stopwatch()..start();
+  int failedRequests = 0;
+  final startTime = DateTime.now().millisecondsSinceEpoch;
 
-    final s = servers.first;
-    final testData = generateDownloadUrls(s, retryCount, downloadSizes);
-    final semaphore = Semaphore(simultaneousDownloads);
-    final tasks = <int>[];
-    final stopwatch = Stopwatch()..start();
-    int failedRequests = 0;
-    final startTime = DateTime.now().millisecondsSinceEpoch;
+  try {
+    for (String td in testData) {
+      await semaphore.acquire();
+      DateTime downloadStartTime = DateTime.now(); // Lưu thời gian bắt đầu tải xuống
 
-    try {
-      for (String td in testData) {
-        await semaphore.acquire();
+      try {
+        final data = await http.get(Uri.parse(td));
+        tasks.add(data.bodyBytes.length);
 
-        try {
-          final data = await http.get(Uri.parse(td));
-          tasks.add(data.bodyBytes.length);
+        downloadSpeed = stopwatch.elapsedMilliseconds / 1000;
 
-          double currentJitter =
-              (stopwatch.elapsedMilliseconds / 1000 - downloadSpeed).abs();
-          downloadSpeed = stopwatch.elapsedMilliseconds / 1000;
-
-          print("jitter: $currentJitter");
-
+        // Tính toán jitter
+        if (downloadStartTimes.isNotEmpty) {
+          final lastDownloadStartTime = downloadStartTimes.last;
+          final timeDifferenceInSeconds =
+              (downloadStartTime.millisecondsSinceEpoch -
+                      lastDownloadStartTime.millisecondsSinceEpoch) /
+                  1000;
+          final currentJitter = (downloadSpeed - timeDifferenceInSeconds).abs();
           jitter.add(currentJitter);
-
-          // Calculate download speed after each download and add it to the stream
-          final totalSize = tasks.reduce((a, b) => a + b);
-          final speed = (totalSize * 32 / 1024) /
-              (stopwatch.elapsedMilliseconds / 1000) /
-              1000;
-          downloadSpeedController.add(speed);
-          if (DateTime.now().millisecondsSinceEpoch - startTime > 15000) {
-            // Nếu thời gian vượt quá 10 giây, trả về kết quả hiện tạ
-            double averageJitter =
-                jitter.reduce((value, element) => value + element) /
-                    jitter.length;
-            print("time out");
-
-            TestResult testDownloadResult = TestResult(
-                speed: speed.round(),
-                jitter: averageJitter,
-                loss: failedRequests);
-            // }
-            print("speed $speed");
-            return testDownloadResult;
-          }
-        } catch (e) {
-          failedRequests++;
-        } finally {
-          semaphore.release();
+          print("jitter: $currentJitter");
         }
-        final _totalSize = tasks.reduce((a, b) => a + b);
-        downloadSpeed = (_totalSize * 32 / 1024) /
+
+        downloadStartTimes.add(downloadStartTime);
+
+        // Calculate download speed after each download and add it to the stream
+        final totalSize = tasks.reduce((a, b) => a + b);
+        final speed = (totalSize * 32 / 1024) /
             (stopwatch.elapsedMilliseconds / 1000) /
             1000;
+        downloadSpeedController.add(speed);
+        if (DateTime.now().millisecondsSinceEpoch - startTime > 15000) {
+          // Nếu thời gian vượt quá 10 giây, trả về kết quả hiện tạ
+          double averageJitter =
+              jitter.reduce((value, element) => value + element) /
+                  jitter.length;
+          print("time out");
+
+          TestResult testDownloadResult = TestResult(
+              speed: speed.round(),
+              jitter: averageJitter,
+              loss: failedRequests);
+          print("speed $speed");
+          return testDownloadResult;
+        }
+      } catch (e) {
+        failedRequests++;
+      } finally {
+        semaphore.release();
       }
-      ;
-      // Thêm timeout 10 giây ở đây
-      stopwatch.stop();
-
-      // break;
-    } catch (_) {
-      // continue;
+      final _totalSize = tasks.reduce((a, b) => a + b);
+      downloadSpeed = (_totalSize * 32 / 1024) /
+          (stopwatch.elapsedMilliseconds / 1000) /
+          1000;
     }
-    double averageJitter =
-        jitter.reduce((value, element) => value + element) / jitter.length;
-    print("jitter $averageJitter");
+    stopwatch.stop();
+  } catch (_) {}
 
-    TestResult testDownloadResult = TestResult(
-        speed: downloadSpeed.round(),
-        jitter: averageJitter,
-        loss: failedRequests);
-    // }
-    return testDownloadResult;
-  }
+  double averageJitter =
+      jitter.reduce((value, element) => value + element) / jitter.length;
+  print("jitter $averageJitter");
+
+  TestResult testDownloadResult = TestResult(
+      speed: downloadSpeed.round(),
+      jitter: averageJitter,
+      loss: failedRequests);
+
+  return testDownloadResult;
+}
+
 
   /// Returns [double] upload speed in MB/s.
 
@@ -222,7 +225,6 @@ class SpeedTestDart {
     final tasks = <int>[];
 
     final startTime = DateTime.now().millisecondsSinceEpoch;
-
 
     try {
       for (String td in testData) {
@@ -245,8 +247,8 @@ class SpeedTestDart {
             print("time out");
 
             TestResult testDownloadResult = TestResult(
-                speed: speed.round(),
-              );
+              speed: speed.round(),
+            );
             // }
             print("speed $speed");
             return testDownloadResult;
@@ -254,7 +256,6 @@ class SpeedTestDart {
         } finally {
           semaphore.release();
         }
-        
       }
 
       stopwatch.stop();
